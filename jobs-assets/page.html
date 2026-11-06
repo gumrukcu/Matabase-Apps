@@ -1,0 +1,673 @@
+<meta name="dash-one-writer">
+<style>
+  .ja { display: flex; flex-direction: column; gap: var(--cds-gap-lg); font-family: var(--font-anthropic-sans); }
+  .ja-head { display: flex; flex-direction: column; gap: var(--cds-gap-sm); }
+  .ja-title { margin: 0; font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); text-wrap: balance; }
+  .ja-take { margin: 0; color: var(--color-fg-muted); font-size: var(--cds-font-size-body); max-width: 70ch; }
+  .ja .ja-take b { color: var(--color-fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .ja-bar { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--cds-gap-sm) var(--cds-gap-md); border-bottom: 1px solid var(--color-border-line); }
+  .ja-tabs { display: flex; gap: var(--cds-gap-md); }
+  .ja-filter { display: flex; align-items: center; gap: var(--cds-gap-sm); padding-bottom: var(--cds-pad-xs); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .ja-filter .dash-select { min-width: min(16rem, 70vw); }
+  .ja-tab { appearance: none; background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px;
+    padding: var(--cds-pad-sm) 2px; font: inherit; font-size: var(--cds-font-size-heading); color: var(--color-fg-muted); cursor: pointer; }
+  .ja-tab[aria-selected="true"] { color: var(--color-fg); border-bottom-color: var(--color-fg); font-weight: var(--cds-font-weight-medium); }
+  .ja-tab:focus-visible, .ja-seg button:focus-visible, .ja-legend button:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
+  .ja-page { display: flex; flex-direction: column; gap: var(--cds-gap-lg); }
+  .ja-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr)); gap: var(--cds-gap-md); }
+  .ja-tile { display: flex; flex-direction: column; gap: var(--cds-gap-xs); padding: var(--cds-pad-md) var(--cds-pad-lg);
+    background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); }
+  .ja-tile-label { display: flex; align-items: center; gap: var(--cds-gap-xs); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .ja-tile-num { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); font-variant-numeric: tabular-nums; line-height: 1.15; min-height: 1.15em; }
+  .ja-tile-sub { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); font-variant-numeric: tabular-nums; min-height: 1.3em; }
+  .ja-sw { display: inline-block; width: 0.625rem; height: 0.625rem; border-radius: 2px; flex: none; }
+  .ja-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr)); gap: var(--cds-gap-md); }
+  .ja-card { display: flex; flex-direction: column; gap: var(--cds-gap-sm); min-width: 0; padding: var(--cds-pad-lg);
+    background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); }
+  .ja-card-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--cds-gap-sm); }
+  .ja-card h2 { margin: 0; font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); }
+  .ja-note { margin: 0; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .ja-controls { display: flex; flex-wrap: wrap; gap: var(--cds-gap-sm); align-items: center; }
+  .ja-seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); overflow: hidden; }
+  .ja-seg button { appearance: none; border: 0; background: none; font: inherit; font-size: var(--cds-font-size-caption);
+    color: var(--color-fg-muted); padding: var(--cds-pad-xs) var(--cds-pad-sm); cursor: pointer; border-right: 1px solid var(--color-border-line); }
+  .ja-seg button:last-child { border-right: 0; }
+  .ja-seg button[aria-pressed="true"] { background: var(--color-fg); color: var(--color-bg); }
+  .ja-legend { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--cds-gap-xs) var(--cds-gap-sm); }
+  .ja-legend button { appearance: none; border: 1px solid transparent; background: none; font: inherit; font-size: var(--cds-font-size-caption);
+    color: var(--color-fg); display: inline-flex; align-items: center; gap: var(--cds-gap-xs); padding: 2px var(--cds-pad-xs); border-radius: var(--cds-radius); cursor: pointer; }
+  .ja-legend button:hover { border-color: var(--color-border-line); }
+  .ja-legend button[aria-pressed="false"] { color: var(--color-fg-muted); text-decoration: line-through; }
+  .ja-legend button[aria-pressed="false"] .ja-sw { opacity: .25; }
+  .ja-legend-hint { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .ja-chart { position: relative; min-height: 300px; }
+  .ja-chart svg { display: block; overflow: visible; }
+  .ja-chart text { font-family: var(--font-anthropic-sans); }
+  .ja-bd { min-height: 380px; }
+  .ja-fail { display: flex; align-items: center; justify-content: center; gap: var(--cds-gap-xs); min-height: inherit; color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+  .ja-fail::before { content: ""; width: .375rem; height: .375rem; border-radius: 50%; background: var(--color-bad); }
+  .ja-tip { position: absolute; z-index: 5; pointer-events: none; background: var(--cds-surface-popover); border: 1px solid var(--cds-border);
+    border-radius: var(--cds-radius); box-shadow: var(--cds-shadow-popover); padding: var(--cds-pad-xs) var(--cds-pad-sm);
+    font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; min-width: 10rem; }
+  .ja-tip-h { color: var(--cds-text-secondary); margin-bottom: 2px; }
+  .ja-tip-r { display: flex; align-items: center; gap: var(--cds-gap-xs); }
+  .ja-tip-r span:nth-child(2) { flex: 1; }
+  .ja-tip-t { border-top: 1px solid var(--cds-border); margin-top: 2px; padding-top: 2px; }
+  .ja-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cds-gap-xs); font-size: var(--cds-font-size-caption); }
+  .ja-crumbs-label { color: var(--color-fg-muted); }
+  .ja-crumb-list { display: contents; }
+  .ja-crumb { appearance: none; font: inherit; display: inline-flex; align-items: center; gap: var(--cds-gap-xs); cursor: pointer;
+    padding: 2px var(--cds-pad-sm); border-radius: 999px; border: 1px solid var(--color-border-line); background: var(--color-panel); color: var(--color-fg); }
+  .ja-crumb:hover { border-color: var(--color-fg-muted); }
+  .ja-crumb[aria-current="true"] { background: var(--color-fg); color: var(--color-bg); border-color: var(--color-fg); }
+  .ja-crumb-sep { color: var(--color-fg-muted); }
+  .ja-crumb-x { color: var(--color-fg-muted); }
+  .ja-drill { cursor: pointer; }
+  .ja-drill:focus-visible { outline: 2px solid var(--color-fg); outline-offset: 2px; }
+  .ja-tablewrap { max-height: 26rem; overflow: auto; }
+  .ja-table { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; }
+  .ja-table th { position: sticky; top: 0; background: var(--color-panel); text-align: left; font-weight: var(--cds-font-weight-medium);
+    color: var(--color-fg-muted); padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); white-space: nowrap; }
+  .ja-table td { padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); white-space: nowrap; }
+  .ja-table td.ja-id { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--color-fg-muted); }
+  .ja-records { min-height: 6rem; }
+  [data-dash-source-state=empty] { color: transparent; }
+  [data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+  .ja-foot { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+  .ja-foot summary { cursor: pointer; }
+  .ja-foot dl { display: grid; grid-template-columns: minmax(7rem, max-content) 1fr; gap: var(--cds-gap-xs) var(--cds-gap-md); margin: var(--cds-gap-sm) 0 0; }
+  .ja-foot dt { color: var(--color-fg); }
+  .ja-foot dd { margin: 0; }
+  @media (prefers-reduced-motion: no-preference) {
+    .ja-grow { animation: ja-in var(--cds-dur-slow) var(--cds-ease-out) both; }
+    @keyframes ja-in { from { opacity: 0; } to { opacity: 1; } }
+  }
+</style>
+
+<div class="ja">
+  <header class="ja-head">
+    <h1 class="ja-title">Jobs &amp; Assets</h1>
+    <p class="ja-take">
+      <b data-draw="num" data-fmt="compact" data-source="job_stages" data-field="n" data-where="stage=All">—</b> jobs in view, of which
+      <b data-draw="num" data-fmt="pct" data-source="job_stages" data-field="share" data-where="stage=Completed">—</b> are completed and
+      <b data-draw="num" data-fmt="pct" data-source="job_stages" data-field="share" data-where="stage=Not scheduled">—</b> are still not scheduled.
+      Across <b data-draw="num" data-fmt="compact" data-source="asset_stages" data-field="n" data-where="status=All">—</b> assets,
+      <b data-draw="num" data-fmt="pct" data-source="asset_stages" data-field="share" data-where="status=Open jobs">—</b> have open jobs.
+    </p>
+    <div class="ja-bar">
+      <nav class="ja-tabs" role="tablist" aria-label="Dashboard pages">
+        <button class="ja-tab" role="tab" id="tab-jobs" data-tab="jobs" aria-selected="true" aria-controls="jobs">Jobs</button>
+        <button class="ja-tab" role="tab" id="tab-assets" data-tab="assets" aria-selected="false" aria-controls="assets">Assets</button>
+      </nav>
+      <label class="ja-filter" id="utility-filter">Utility
+        <select class="dash-select" id="utility-select" data-draw="utility" data-source="utility_options" aria-label="Utility"></select>
+      </label>
+    </div>
+  </header>
+
+  <section class="ja-page" id="jobs" role="tabpanel" aria-labelledby="tab-jobs" data-kind="jobs">
+    <nav class="ja-crumbs" aria-label="Drill-down path">
+      <span class="ja-crumbs-label">Viewing</span>
+      <button type="button" class="ja-crumb" data-root="jobs" aria-current="true">All jobs</button>
+      <span class="ja-crumb-list" data-draw="crumbs" data-kind="jobs"></span>
+    </nav>
+    <div class="ja-tiles" id="jobs-tiles" data-fetchpriority="high">
+      <div class="ja-tile"><span class="ja-tile-label">Total jobs</span>
+        <span class="ja-tile-num" data-draw="num" data-fmt="compact" data-source="job_stages" data-field="n" data-where="stage=All">—</span>
+        <span class="ja-tile-sub">In the current view</span></div>
+      <div class="ja-tile"><span class="ja-tile-label"><span class="ja-sw" data-series="Completed"></span>Completed</span>
+        <span class="ja-tile-num" data-draw="num" data-fmt="compact" data-source="job_stages" data-field="n" data-where="stage=Completed">—</span>
+        <span class="ja-tile-sub" data-draw="num" data-fmt="pctof" data-source="job_stages" data-field="share" data-where="stage=Completed">—</span></div>
+      <div class="ja-tile"><span class="ja-tile-label"><span class="ja-sw" data-series="Not scheduled"></span>Not scheduled</span>
+        <span class="ja-tile-num" data-draw="num" data-fmt="compact" data-source="job_stages" data-field="n" data-where="stage=Not scheduled">—</span>
+        <span class="ja-tile-sub" data-draw="num" data-fmt="pctof" data-source="job_stages" data-field="share" data-where="stage=Not scheduled">—</span></div>
+      <div class="ja-tile"><span class="ja-tile-label"><span class="ja-sw" data-series="Open"></span>Open</span>
+        <span class="ja-tile-num" data-draw="num" data-fmt="compact" data-source="job_stages" data-field="n" data-where="stage=Open">—</span>
+        <span class="ja-tile-sub" data-draw="num" data-fmt="pctof" data-source="job_stages" data-field="share" data-where="stage=Open">—</span></div>
+      <div class="ja-tile"><span class="ja-tile-label"><span class="ja-sw" data-series="Incomplete"></span>Incomplete</span>
+        <span class="ja-tile-num" data-draw="num" data-fmt="compact" data-source="job_stages" data-field="n" data-where="stage=Incomplete">—</span>
+        <span class="ja-tile-sub" data-draw="num" data-fmt="pctof" data-source="job_stages" data-field="share" data-where="stage=Incomplete">—</span></div>
+      <div class="ja-tile"><span class="ja-tile-label"><span class="ja-sw" data-series="Cancelled"></span>Cancelled</span>
+        <span class="ja-tile-num" data-draw="num" data-fmt="compact" data-source="job_stages" data-field="n" data-where="stage=Cancelled">—</span>
+        <span class="ja-tile-sub" data-draw="num" data-fmt="pctof" data-source="job_stages" data-field="share" data-where="stage=Cancelled">—</span></div>
+    </div>
+
+    <div class="ja-controls">
+      <ul class="ja-legend" data-kind="jobs" aria-label="Job stages shown">
+        <li><button type="button" data-series="Completed" aria-pressed="true"><span class="ja-sw" data-series="Completed"></span>Completed</button></li>
+        <li><button type="button" data-series="Validating" aria-pressed="true"><span class="ja-sw" data-series="Validating"></span>Validating</button></li>
+        <li><button type="button" data-series="Open" aria-pressed="true"><span class="ja-sw" data-series="Open"></span>Open</button></li>
+        <li><button type="button" data-series="Not scheduled" aria-pressed="true"><span class="ja-sw" data-series="Not scheduled"></span>Not scheduled</button></li>
+        <li><button type="button" data-series="Incomplete" aria-pressed="true"><span class="ja-sw" data-series="Incomplete"></span>Incomplete</button></li>
+        <li><button type="button" data-series="Cancelled" aria-pressed="true"><span class="ja-sw" data-series="Cancelled"></span>Cancelled</button></li>
+      </ul>
+      <span class="ja-legend-hint">Click a stage to hide or show it in both charts</span>
+    </div>
+
+    <div class="ja-grid">
+      <article class="ja-card" id="jobs-breakdown">
+        <div class="ja-card-head">
+          <div>
+            <h2>Jobs broken down</h2>
+            <p class="ja-note">Jobs in view by current stage; 12 largest groups, the rest as Other. Click a bar to drill in.</p>
+          </div>
+          <div class="ja-seg" data-kind="jobs" data-control="mode" aria-label="Measure">
+            <button type="button" data-value="count" aria-pressed="true">Count</button>
+            <button type="button" data-value="share" aria-pressed="false">Share</button>
+          </div>
+        </div>
+        <div class="ja-seg" data-kind="jobs" data-control="dim" aria-label="Break down by">
+          <button type="button" data-value="Work order type" aria-pressed="true">Work order type</button>
+          <button type="button" data-value="Substatus" aria-pressed="false">Substatus</button>
+          <button type="button" data-value="Incomplete reason" aria-pressed="false">Incomplete reason</button>
+          <button type="button" data-value="Validation status" aria-pressed="false">Validation status</button>
+          <button type="button" data-value="Year created" aria-pressed="false">Year created</button>
+        </div>
+        <div class="ja-chart ja-bd dash-skeleton" data-draw="breakdown" data-kind="jobs" data-source="job_breakdown"></div>
+      </article>
+
+      <article class="ja-card" id="jobs-trend">
+        <div class="ja-card-head">
+          <div>
+            <h2>Jobs created per month</h2>
+            <p class="ja-note">Last 36 months, stacked by each job's current stage</p>
+          </div>
+        </div>
+        <div class="ja-chart dash-skeleton" data-draw="trend" data-kind="jobs" data-source="job_month"></div>
+      </article>
+    </div>
+
+    <article class="ja-card" id="jobs-records" data-fetchpriority="low">
+      <div>
+        <h2>Matching jobs</h2>
+        <p class="ja-note">The 100 most recently created jobs in the current view</p>
+      </div>
+      <div class="ja-tablewrap ja-records">
+        <table class="ja-table" data-source="job_records" data-row-key="id">
+          <thead><tr>
+            <th data-field="id">Job ID</th><th data-field="created">Created</th><th data-field="status">Status</th>
+            <th data-field="work_order_type">Work order type</th><th data-field="substatus">Substatus</th>
+            <th data-field="incomplete_reason">Incomplete reason</th><th data-field="finished">Finished</th>
+          </tr></thead>
+          <tbody data-draw="records" data-kind="jobs"></tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+
+  <section class="ja-page" id="assets" role="tabpanel" aria-labelledby="tab-assets" data-kind="assets" hidden>
+    <nav class="ja-crumbs" aria-label="Drill-down path">
+      <span class="ja-crumbs-label">Viewing</span>
+      <button type="button" class="ja-crumb" data-root="assets" aria-current="true">All assets</button>
+      <span class="ja-crumb-list" data-draw="crumbs" data-kind="assets"></span>
+    </nav>
+    <div class="ja-tiles" id="assets-tiles" data-fetchpriority="high">
+      <div class="ja-tile"><span class="ja-tile-label">Total assets</span>
+        <span class="ja-tile-num" data-draw="num" data-fmt="compact" data-source="asset_stages" data-field="n" data-where="status=All">—</span>
+        <span class="ja-tile-sub">In the current view</span></div>
+      <div class="ja-tile"><span class="ja-tile-label"><span class="ja-sw" data-series="Closed jobs"></span>With closed jobs</span>
+        <span class="ja-tile-num" data-draw="num" data-fmt="compact" data-source="asset_stages" data-field="n" data-where="status=Closed jobs">—</span>
+        <span class="ja-tile-sub" data-draw="num" data-fmt="pctof" data-source="asset_stages" data-field="share" data-where="status=Closed jobs">—</span></div>
+      <div class="ja-tile"><span class="ja-tile-label"><span class="ja-sw" data-series="Open jobs"></span>With open jobs</span>
+        <span class="ja-tile-num" data-draw="num" data-fmt="compact" data-source="asset_stages" data-field="n" data-where="status=Open jobs">—</span>
+        <span class="ja-tile-sub" data-draw="num" data-fmt="pctof" data-source="asset_stages" data-field="share" data-where="status=Open jobs">—</span></div>
+      <div class="ja-tile"><span class="ja-tile-label"><span class="ja-sw" data-series="No jobs"></span>With no jobs</span>
+        <span class="ja-tile-num" data-draw="num" data-fmt="compact" data-source="asset_stages" data-field="n" data-where="status=No jobs">—</span>
+        <span class="ja-tile-sub" data-draw="num" data-fmt="pctof" data-source="asset_stages" data-field="share" data-where="status=No jobs">—</span></div>
+    </div>
+
+    <div class="ja-controls">
+      <ul class="ja-legend" data-kind="assets" aria-label="Asset statuses shown">
+        <li><button type="button" data-series="Closed jobs" aria-pressed="true"><span class="ja-sw" data-series="Closed jobs"></span>Closed jobs</button></li>
+        <li><button type="button" data-series="Open jobs" aria-pressed="true"><span class="ja-sw" data-series="Open jobs"></span>Open jobs</button></li>
+        <li><button type="button" data-series="No jobs" aria-pressed="true"><span class="ja-sw" data-series="No jobs"></span>No jobs</button></li>
+      </ul>
+      <span class="ja-legend-hint">Click a status to hide or show it in both charts</span>
+    </div>
+
+    <div class="ja-grid">
+      <article class="ja-card" id="assets-breakdown">
+        <div class="ja-card-head">
+          <div>
+            <h2>Assets broken down</h2>
+            <p class="ja-note">Assets in view by job status; 12 largest groups, the rest as Other. Click a bar to drill in.</p>
+          </div>
+          <div class="ja-seg" data-kind="assets" data-control="mode" aria-label="Measure">
+            <button type="button" data-value="count" aria-pressed="true">Count</button>
+            <button type="button" data-value="share" aria-pressed="false">Share</button>
+          </div>
+        </div>
+        <div class="ja-seg" data-kind="assets" data-control="dim" aria-label="Break down by">
+          <button type="button" data-value="State" aria-pressed="true">State</button>
+          <button type="button" data-value="City" aria-pressed="false">City</button>
+          <button type="button" data-value="Asset type" aria-pressed="false">Asset type</button>
+          <button type="button" data-value="Year created" aria-pressed="false">Year created</button>
+        </div>
+        <div class="ja-chart ja-bd dash-skeleton" data-draw="breakdown" data-kind="assets" data-source="asset_breakdown"></div>
+      </article>
+
+      <article class="ja-card" id="assets-trend">
+        <div class="ja-card-head">
+          <div>
+            <h2>Assets created per month</h2>
+            <p class="ja-note">Last 36 months, stacked by each asset's current job status</p>
+          </div>
+        </div>
+        <div class="ja-chart dash-skeleton" data-draw="trend" data-kind="assets" data-source="asset_month"></div>
+      </article>
+    </div>
+
+    <article class="ja-card" id="assets-records" data-fetchpriority="low">
+      <div>
+        <h2>Matching assets</h2>
+        <p class="ja-note">The 100 most recently created assets in the current view</p>
+      </div>
+      <div class="ja-tablewrap ja-records">
+        <table class="ja-table" data-source="asset_records" data-row-key="id">
+          <thead><tr>
+            <th data-field="id">Asset ID</th><th data-field="code">Code</th><th data-field="created">Created</th>
+            <th data-field="status">Status</th><th data-field="asset_type">Asset type</th>
+            <th data-field="city">City</th><th data-field="state">State</th>
+          </tr></thead>
+          <tbody data-draw="records" data-kind="assets"></tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+
+  <details class="ja-foot">
+    <summary>Definitions</summary>
+    <dl>
+      <dt>Utility</dt><dd>The tenant each job and asset belongs to. The list holds every utility with at least one job or asset; All utilities includes demo and test tenants.</dd>
+      <dt>Open</dt><dd>Jobs whose status is Scheduled, Assigned, EnRoute, InProgress or Paused.</dd>
+      <dt>Not scheduled</dt><dd>Jobs with status NotScheduled.</dd>
+      <dt>Completed, Validating, Incomplete, Cancelled</dt><dd>The job status of the same name.</dd>
+      <dt>Asset status</dt><dd>The asset's own status field: OpenJobs, ClosedJobs or NoJobs.</dd>
+      <dt>(none)</dt><dd>The field is blank on those records.</dd>
+      <dt>Incomplete reason</dt><dd>Only jobs with a reason recorded, whatever their current stage.</dd>
+      <dt>City</dt><dd>Spelling is normalized to title case, so COLUMBUS and Columbus count together.</dd>
+      <dt>Drilling down</dt><dd>Clicking a bar keeps only that group on the tab: tiles, both charts and the record list. Other is a mix of smaller groups and cannot be opened.</dd>
+      <dt>Source</dt><dd>VPIE NEXTGEN BUSINESS in Metabase, SQL written for this dashboard. Counts are all time, across every tenant.</dd>
+    </dl>
+  </details>
+</div>
+
+<script>
+  // Turns Metabase's execute_sql answer (cols + array rows) into row objects.
+  const readMetabase = ({ answer }) => {
+    let a = answer;
+    if (a && Array.isArray(a.content)) a = a.content.map((c) => c.text || '').join('');
+    if (typeof a === 'string') {
+      const i = a.indexOf('{'), j = a.lastIndexOf('}');
+      if (i < 0 || j < i) throw new Error(a.slice(0, 300));
+      a = JSON.parse(a.slice(i, j + 1));
+    }
+    if (a && a.structuredContent) a = a.structuredContent;
+    if (!a || !Array.isArray(a.cols) || !Array.isArray(a.rows)) {
+      throw new Error((a && (a.error || a.message)) || ('No rows in the answer; keys: ' + Object.keys(a || {}).join(', ')));
+    }
+    const names = a.cols.map((c) => c.name);
+    const numeric = a.cols.map((c) => /Integer|Decimal|Float|Number/.test(c.base_type || ''));
+    const rows = a.rows.map((r) => Object.fromEntries(names.map((n, i) => [n, numeric[i] && r[i] != null ? Number(r[i]) : r[i]])));
+    return { columns: names, rows, cut: !!a.truncated };
+  };
+  dash.loader('job_stages', { description: 'Metabase columns and rows as a table', fn: readMetabase });
+  dash.loader('job_month', { description: 'Metabase columns and rows as a table', fn: readMetabase });
+  dash.loader('job_breakdown', { description: 'Metabase columns and rows as a table', fn: readMetabase });
+  dash.loader('asset_stages', { description: 'Metabase columns and rows as a table', fn: readMetabase });
+  dash.loader('asset_month', { description: 'Metabase columns and rows as a table', fn: readMetabase });
+  dash.loader('asset_breakdown', { description: 'Metabase columns and rows as a table', fn: readMetabase });
+  dash.loader('job_records', { description: 'Metabase columns and rows as a table', fn: readMetabase });
+  dash.loader('asset_records', { description: 'Metabase columns and rows as a table', fn: readMetabase });
+  dash.loader('utilities', { description: 'Metabase columns and rows as a table', fn: readMetabase });
+  dash.loader('utility_counts', { description: 'Metabase columns and rows as a table', fn: readMetabase });
+
+  dash.calc('utility_options', {
+    title: 'Utilities with data',
+    description: 'Utility names matched to the tenant ids that have jobs or assets, sorted by name.',
+    inputs: ['utilities', 'utility_counts'],
+    fn: (utilities, utility_counts) => {
+      const counts = new Map(utility_counts.map((r) => [r.tenantid, r]));
+      return utilities.filter((u) => counts.has(u.id))
+        .map((u) => ({ id: u.id, name: u.name, jobs: counts.get(u.id).jobs, assets: counts.get(u.id).assets }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    },
+  });
+
+  // Utility dropdown, shared by both tabs
+  dash.draw('utility', (sel) => {
+    const g = dash.data('utility_options');
+    const list = g.status === 'ok' ? rowsOf(g) : [];
+    sel.replaceChildren(new Option('All utilities', ''), ...list.map((r) => new Option(r.name, r.id)));
+    sel.value = dash.params().utility || '';
+    sel.onchange = () => dash.setParams({ utility: sel.value });
+  });
+
+  const KINDS = {
+    jobs: { key: 'stage', series: ['Completed', 'Validating', 'Open', 'Not scheduled', 'Incomplete', 'Cancelled'],
+      colorIx: [0, 1, 2, 3, 4, 5], dim: 'Work order type', mode: 'count', off: new Set(),
+      params: { 'Work order type': 'j_wot', 'Substatus': 'j_sub', 'Incomplete reason': 'j_reason', 'Validation status': 'j_val', 'Year created': 'j_yr' },
+      records: ['id', 'created', 'status', 'work_order_type', 'substatus', 'incomplete_reason', 'finished'] },
+    assets: { key: 'status', series: ['Closed jobs', 'Open jobs', 'No jobs'],
+      colorIx: [0, 2, 3], dim: 'State', mode: 'count', off: new Set(),
+      params: { 'State': 'a_state', 'City': 'a_city', 'Asset type': 'a_type', 'Year created': 'a_yr' },
+      records: ['id', 'code', 'created', 'status', 'asset_type', 'city', 'state'] },
+  };
+  const colorOf = (series) => {
+    for (const k of Object.values(KINDS)) {
+      const i = k.series.indexOf(series);
+      if (i >= 0) return dash.colors[k.colorIx[i] % dash.colors.length];
+    }
+    return 'var(--cds-chart-muted)';
+  };
+  const rowsOf = (d) => (Array.isArray(d.data) ? d.data : (d.data && d.data.rows) || []);
+  const fmtN = d3.format(',');
+  const fmtC = (v) => (Math.abs(v) >= 10000 ? new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(v) : fmtN(v));
+  const fmtP = d3.format('.1%');
+  const fmtAxis = (v) => new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(v);
+
+  // Swatch colors
+  document.querySelectorAll('.ja-sw[data-series]').forEach((sw) => { sw.style.background = colorOf(sw.dataset.series); });
+
+  // Tabs
+  const openTab = (name, link) => {
+    document.querySelectorAll('.ja-tab').forEach((t) => t.setAttribute('aria-selected', String(t.dataset.tab === name)));
+    document.querySelectorAll('.ja-page').forEach((p) => { p.hidden = p.id !== name; });
+    if (link) dash.setLink(name);
+  };
+  document.querySelectorAll('.ja-tab').forEach((t) => t.addEventListener('click', () => openTab(t.dataset.tab, true)));
+  const h = location.hash.slice(1);
+  if (h === 'assets' || h === 'jobs') openTab(h, false);
+
+  // Drill-down state lives in the filters (j_* and a_*)
+  const LABEL_OK = /^[\p{L}\p{M}\p{N} ()&/.,:#+_-]{1,80}$/u;
+  const filtersOf = (k) => Object.entries(k.params).filter(([, p]) => (dash.params()[p] || '') !== '');
+  const syncDim = (kind) => {
+    document.querySelectorAll(`.ja-seg[data-kind="${kind}"][data-control="dim"] button`).forEach((b) =>
+      b.setAttribute('aria-pressed', String(b.dataset.value === KINDS[kind].dim)));
+  };
+  const canDrill = (k, label) => label !== 'Other' && (k.dim === 'Year created' ? /^[0-9]{4}$/.test(label) : LABEL_OK.test(label));
+  const drill = (kind, label) => {
+    const k = KINDS[kind];
+    if (!canDrill(k, label)) return;
+    const set = { [k.params[k.dim]]: label };
+    const taken = new Set([k.dim, ...filtersOf(k).map(([d]) => d)]);
+    const next = Object.keys(k.params).find((d) => !taken.has(d));
+    if (next) { k.dim = next; syncDim(kind); }
+    dash.setParams(set);
+  };
+  const undrill = (kind, dim) => {
+    const k = KINDS[kind];
+    if (dim) { k.dim = dim; syncDim(kind); dash.setParams({ [k.params[dim]]: '' }); return; }
+    const clear = {}; Object.values(k.params).forEach((p) => { clear[p] = ''; });
+    dash.setParams(clear);
+  };
+  document.querySelectorAll('.ja-crumb[data-root]').forEach((b) => b.addEventListener('click', () => undrill(b.dataset.root)));
+  dash.onData(() => {
+    document.querySelectorAll('.ja-crumb[data-root]').forEach((b) =>
+      b.setAttribute('aria-current', String(filtersOf(KINDS[b.dataset.root]).length === 0)));
+  });
+
+  // Segmented controls
+  document.querySelectorAll('.ja-seg[data-control]').forEach((seg) => {
+    seg.addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-value]');
+      if (!b) return;
+      KINDS[seg.dataset.kind][seg.dataset.control] = b.dataset.value;
+      seg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+      dash.draw('breakdown');
+    });
+  });
+
+  // Legends toggle series
+  document.querySelectorAll('.ja-legend').forEach((lg) => {
+    lg.addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-series]');
+      if (!b) return;
+      const k = KINDS[lg.dataset.kind];
+      const s = b.dataset.series;
+      if (k.off.has(s)) k.off.delete(s);
+      else if (k.off.size < k.series.length - 1) k.off.add(s);
+      lg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(!k.off.has(x.dataset.series))));
+      dash.draw('breakdown');
+      dash.draw('trend');
+    });
+  });
+
+  // Status helpers
+  const settle = (el, d) => { if (d.status !== 'loading') el.classList.remove('dash-skeleton'); };
+  const failLine = (el) => {
+    const p = document.createElement('div');
+    p.className = 'ja-fail';
+    p.textContent = 'Failed to load';
+    el.replaceChildren(p);
+  };
+  const makeTip = (el) => { const t = document.createElement('div'); t.className = 'ja-tip'; t.hidden = true; el.appendChild(t); return t; };
+  const fillTip = (tip, head, lines, total) => {
+    const hd = document.createElement('div'); hd.className = 'ja-tip-h'; hd.textContent = head;
+    const kids = [hd];
+    lines.forEach(([name, value, color]) => {
+      const r = document.createElement('div'); r.className = 'ja-tip-r';
+      const sw = document.createElement('span'); sw.className = 'ja-sw'; sw.style.background = color;
+      const nm = document.createElement('span'); nm.textContent = name;
+      const v = document.createElement('span'); v.textContent = value;
+      r.append(sw, nm, v); kids.push(r);
+    });
+    if (total) {
+      const r = document.createElement('div'); r.className = 'ja-tip-r ja-tip-t';
+      const sp = document.createElement('span'); sp.className = 'ja-sw';
+      const nm = document.createElement('span'); nm.textContent = total[0];
+      const v = document.createElement('span'); v.textContent = total[1];
+      r.append(sp, nm, v); kids.push(r);
+    }
+    tip.replaceChildren(...kids);
+  };
+  const placeTip = (el, tip, x, y) => {
+    tip.hidden = false;
+    const w = tip.offsetWidth, hh = tip.offsetHeight, W = el.clientWidth;
+    let left = x + 14; if (left + w > W) left = Math.max(0, x - w - 14);
+    let top = y - hh / 2; top = Math.max(0, Math.min(top, el.clientHeight - hh));
+    tip.style.left = left + 'px'; tip.style.top = top + 'px';
+  };
+  const measure = (svg, texts, cls) => {
+    let m = 0;
+    texts.forEach((t) => {
+      const n = svg.append('text').style('font-size', 'var(--cds-font-size-caption)').text(t);
+      m = Math.max(m, n.node().getComputedTextLength()); n.remove();
+    });
+    return m;
+  };
+
+  // Single numbers
+  dash.draw('num', (el) => {
+    const d = dash.data(el.dataset.source);
+    settle(el, d);
+    if (d.status !== 'ok') { el.textContent = '—'; return; }
+    const [k, v] = el.dataset.where.split('=').map(decodeURIComponent);
+    const row = rowsOf(d).find((r) => String(r[k]) === v);
+    const val = row ? row[el.dataset.field] : null;
+    if (val == null) { el.textContent = '—'; return; }
+    const f = el.dataset.fmt;
+    el.textContent = f === 'pct' ? fmtP(val) : f === 'pctof' ? fmtP(val) + ' of total' : fmtC(val);
+  });
+
+  // Monthly stacked bars
+  dash.draw('trend', (el) => {
+    const k = KINDS[el.dataset.kind];
+    const d = dash.data(el.dataset.source);
+    settle(el, d);
+    if (d.status === 'error') { failLine(el); return; }
+    if (d.status !== 'ok') { el.replaceChildren(); return; }
+    const rows = rowsOf(d);
+    const keys = k.series.filter((s) => !k.off.has(s));
+    const byMonth = d3.rollup(rows, (v) => d3.sum(v, (r) => r.n), (r) => r.month, (r) => r[k.key]);
+    const parse = d3.utcParse('%Y-%m');
+    const ms = [...byMonth.keys()].sort();
+    if (!ms.length) { el.replaceChildren(); return; }
+    const months = d3.utcMonth.range(parse(ms[0]), d3.utcMonth.offset(parse(ms[ms.length - 1]), 1)).map(d3.utcFormat('%Y-%m'));
+    const data = months.map((m) => {
+      const o = { month: m }; const g = byMonth.get(m) || new Map();
+      k.series.forEach((s) => { o[s] = g.get(s) || 0; });
+      return o;
+    });
+    const stack = d3.stack().keys(keys)(data);
+    const W = Math.max(280, el.clientWidth), H = 300;
+    el.replaceChildren();
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img')
+      .attr('aria-label', 'Monthly counts stacked by status');
+    const ymax = d3.max(stack.length ? stack[stack.length - 1] : [], (p) => p[1]) || 1;
+    const y = d3.scaleLinear([0, ymax], [H - 24, 8]).nice();
+    const ticks = y.ticks(5);
+    const left = measure(svg, ticks.map(fmtAxis)) + 10;
+    const x = d3.scaleBand(months, [left, W - 4]).paddingInner(0.2);
+    svg.append('g').selectAll('line').data(ticks).join('line')
+      .attr('x1', left).attr('x2', W - 4).attr('y1', (t) => y(t)).attr('y2', (t) => y(t))
+      .style('stroke', 'var(--cds-chart-grid)').attr('stroke-width', 1);
+    svg.append('g').selectAll('text').data(ticks).join('text')
+      .attr('x', left - 8).attr('y', (t) => y(t)).attr('dy', '0.32em').attr('text-anchor', 'end')
+      .style('font-size', 'var(--cds-font-size-caption)').style('fill', 'var(--color-fg-muted)').text(fmtAxis);
+    const step = W < 520 ? 12 : 6;
+    const fm = d3.utcFormat('%b %Y');
+    svg.append('g').selectAll('text').data(months.filter((m, i) => (months.length - 1 - i) % step === 0)).join('text')
+      .attr('x', (m) => x(m) + x.bandwidth() / 2).attr('y', H - 6).attr('text-anchor', 'middle')
+      .style('font-size', 'var(--cds-font-size-caption)').style('fill', 'var(--color-fg-muted)').text((m) => fm(parse(m)));
+    svg.append('line').attr('x1', left).attr('x2', W - 4).attr('y1', y(0)).attr('y2', y(0)).style('stroke', 'var(--cds-chart-axis)');
+    const hi = svg.append('rect').attr('y', 8).attr('height', H - 32).attr('width', x.step()).style('fill', 'var(--cds-chart-grid)').attr('opacity', 0);
+    const bars = svg.append('g').attr('class', 'ja-grow');
+    bars.selectAll('g').data(stack).join('g').style('fill', (s) => colorOf(s.key))
+      .selectAll('rect').data((s) => s).join('rect')
+      .attr('x', (p) => x(p.data.month)).attr('width', x.bandwidth())
+      .attr('y', (p) => y(p[1])).attr('height', (p) => Math.max(0, y(p[0]) - y(p[1])));
+    const tip = makeTip(el);
+    svg.on('pointermove', (ev) => {
+      const [px, py] = d3.pointer(ev);
+      const i = Math.floor((px - left) / x.step());
+      if (i < 0 || i >= months.length) { tip.hidden = true; hi.attr('opacity', 0); return; }
+      const row = data[i];
+      hi.attr('x', x(row.month) - (x.step() - x.bandwidth()) / 2).attr('opacity', 0.6);
+      fillTip(tip, fm(parse(row.month)), keys.slice().reverse().map((s) => [s, fmtN(row[s]), colorOf(s)]),
+        ['Total', fmtN(d3.sum(keys, (s) => row[s]))]);
+      const r = el.getBoundingClientRect(), sv = svg.node().getBoundingClientRect();
+      placeTip(el, tip, (px * sv.width) / W + (sv.left - r.left), (py * sv.height) / H + (sv.top - r.top));
+    }).on('pointerleave', () => { tip.hidden = true; hi.attr('opacity', 0); });
+  });
+
+  // Horizontal stacked bars for the chosen breakdown
+  dash.draw('breakdown', (el) => {
+    const k = KINDS[el.dataset.kind];
+    const d = dash.data(el.dataset.source);
+    settle(el, d);
+    if (d.status === 'error') { failLine(el); return; }
+    if (d.status !== 'ok') { el.replaceChildren(); return; }
+    const keys = k.series.filter((s) => !k.off.has(s));
+    const rows = rowsOf(d).filter((r) => r.dim === k.dim);
+    const g = d3.rollup(rows, (v) => d3.sum(v, (r) => r.n), (r) => r.label, (r) => r[k.key]);
+    let data = [...g].map(([label, m]) => {
+      const o = { label }; k.series.forEach((s) => { o[s] = m.get(s) || 0; });
+      o.total = d3.sum(keys, (s) => o[s]); return o;
+    });
+    if (k.dim === 'Year created') data.sort((a, b) => d3.ascending(a.label, b.label));
+    else data.sort((a, b) => (a.label === 'Other') - (b.label === 'Other') || b.total - a.total);
+    const share = k.mode === 'share';
+    const val = (o, s) => (share ? (o.total ? o[s] / o.total : 0) : o[s]);
+    const stack = d3.stack().keys(keys).value((o, s) => val(o, s))(data);
+    const W = Math.max(280, el.clientWidth), rowH = 26, top = 4, H = top + data.length * rowH + 22;
+    el.replaceChildren();
+    if (!data.length) return;
+    const svg = d3.select(el).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img')
+      .attr('aria-label', 'Breakdown by ' + k.dim);
+    const maxLab = Math.min(W * 0.38, 190);
+    const fit = (t) => {
+      const n = svg.append('text').style('font-size', 'var(--cds-font-size-caption)').text(t);
+      let s = t; while (s.length > 3 && n.node().getComputedTextLength() > maxLab) { s = s.slice(0, -1); n.text(s + '…'); }
+      const out = n.text(); n.remove(); return out;
+    };
+    const labels = data.map((o) => fit(o.label));
+    const left = measure(svg, labels) + 10;
+    const endW = share ? 0 : measure(svg, data.map((o) => fmtC(o.total))) + 8;
+    const xmax = share ? 1 : d3.max(data, (o) => o.total) || 1;
+    const x = d3.scaleLinear([0, xmax], [left, W - 4 - endW]);
+    const y = d3.scaleBand(data.map((o) => o.label), [top, top + data.length * rowH]).paddingInner(0.25);
+    const ticks = x.ticks(W < 520 ? 3 : 5);
+    svg.append('g').selectAll('line').data(ticks).join('line')
+      .attr('x1', (t) => x(t)).attr('x2', (t) => x(t)).attr('y1', top).attr('y2', top + data.length * rowH)
+      .style('stroke', 'var(--cds-chart-grid)');
+    svg.append('g').selectAll('text').data(ticks).join('text')
+      .attr('x', (t) => x(t)).attr('y', H - 4).attr('text-anchor', 'middle')
+      .style('font-size', 'var(--cds-font-size-caption)').style('fill', 'var(--color-fg-muted)')
+      .text((t) => (share ? d3.format('.0%')(t) : fmtAxis(t)));
+    svg.append('g').selectAll('text').data(data).join('text')
+      .attr('x', left - 8).attr('y', (o) => y(o.label) + y.bandwidth() / 2).attr('dy', '0.32em').attr('text-anchor', 'end')
+      .style('font-size', 'var(--cds-font-size-caption)').style('fill', 'var(--color-fg)').text((o, i) => labels[i])
+      .each(function (o) {
+        if (!canDrill(k, o.label)) return;
+        d3.select(this).attr('class', 'ja-drill').attr('tabindex', 0).attr('role', 'button').attr('aria-label', 'Drill into ' + o.label)
+          .on('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); drill(el.dataset.kind, o.label); } });
+      });
+    const hi = svg.append('rect').attr('x', 0).attr('width', W).attr('height', rowH).style('fill', 'var(--cds-chart-grid)').attr('opacity', 0);
+    svg.append('g').attr('class', 'ja-grow').selectAll('g').data(stack).join('g').style('fill', (s) => colorOf(s.key))
+      .selectAll('rect').data((s) => s).join('rect')
+      .attr('y', (p) => y(p.data.label)).attr('height', y.bandwidth())
+      .attr('x', (p) => x(p[0])).attr('width', (p) => Math.max(0, x(p[1]) - x(p[0])));
+    if (!share) {
+      svg.append('g').selectAll('text').data(data).join('text')
+        .attr('x', (o) => x(o.total) + 6).attr('y', (o) => y(o.label) + y.bandwidth() / 2).attr('dy', '0.32em')
+        .style('font-size', 'var(--cds-font-size-caption)').style('fill', 'var(--color-fg-muted)').text((o) => fmtC(o.total));
+    }
+    svg.append('line').attr('x1', left).attr('x2', left).attr('y1', top).attr('y2', top + data.length * rowH).style('stroke', 'var(--cds-chart-axis)');
+    const tip = makeTip(el);
+    svg.on('pointermove', (ev) => {
+      const [px, py] = d3.pointer(ev);
+      const i = Math.floor((py - top) / rowH);
+      if (i < 0 || i >= data.length) { tip.hidden = true; hi.attr('opacity', 0); return; }
+      const o = data[i];
+      hi.attr('y', top + i * rowH - (y.step() - y.bandwidth()) / 2).attr('opacity', 0.6);
+      fillTip(tip, o.label, keys.map((s) => [s, fmtN(o[s]) + (o.total ? '  ·  ' + fmtP(o[s] / o.total) : ''), colorOf(s)]),
+        ['Total', fmtN(o.total)]);
+      const r = el.getBoundingClientRect(), sv = svg.node().getBoundingClientRect();
+      placeTip(el, tip, (px * sv.width) / W + (sv.left - r.left), (py * sv.height) / H + (sv.top - r.top));
+      svg.classed('ja-drill', canDrill(k, o.label));
+    }).on('pointerleave', () => { tip.hidden = true; hi.attr('opacity', 0); svg.classed('ja-drill', false); })
+      .on('click', (ev) => {
+        const [, py] = d3.pointer(ev);
+        const i = Math.floor((py - top) / rowH);
+        if (i >= 0 && i < data.length) drill(el.dataset.kind, data[i].label);
+      });
+  });
+
+  // Breadcrumb chips for each drill step
+  dash.draw('crumbs', (el) => {
+    const kind = el.dataset.kind, k = KINDS[kind];
+    const kids = [];
+    filtersOf(k).forEach(([dim, p]) => {
+      const sep = document.createElement('span'); sep.className = 'ja-crumb-sep'; sep.textContent = '›';
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'ja-crumb';
+      b.setAttribute('aria-label', 'Remove ' + dim + ' ' + dash.params()[p]);
+      const t = document.createElement('span'); t.textContent = dim + ': ' + dash.params()[p];
+      const x = document.createElement('span'); x.className = 'ja-crumb-x'; x.textContent = '×';
+      b.append(t, x);
+      b.addEventListener('click', () => undrill(kind, dim));
+      kids.push(sep, b);
+    });
+    el.replaceChildren(...kids);
+  });
+
+  // Record list for the current view
+  dash.draw('records', (el) => {
+    const k = KINDS[el.dataset.kind];
+    const table = el.closest('table');
+    const d = dash.data(table.dataset.source);
+    if (d.status !== 'ok') { el.replaceChildren(); return; }
+    el.replaceChildren(...rowsOf(d).map((r) => {
+      const tr = document.createElement('tr');
+      tr.dataset.key = r.id;
+      k.records.forEach((c) => {
+        const td = document.createElement('td');
+        if (c === 'id') td.className = 'ja-id';
+        td.textContent = r[c] == null ? '' : String(r[c]);
+        tr.appendChild(td);
+      });
+      return tr;
+    }));
+  });
+</script>
